@@ -1,224 +1,159 @@
 import 'package:flutter/material.dart';
-import 'package:form_field_validator/form_field_validator.dart';
-import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'login_page.dart';
 
 class RegisterPage extends StatefulWidget {
-  const RegisterPage({Key? key}) : super(key: key);
+  const RegisterPage({super.key});
 
   @override
   State<RegisterPage> createState() => _RegisterPageState();
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  Map userData = {};
-  final _formkey = GlobalKey<FormState>();
+  final SupabaseClient supabase = Supabase.instance.client;
+
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+
+  bool isLoading = false;
+
+  List<Map<String, dynamic>> companyList = [];
+  String? selectedCompany;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchCompanies();
+  }
+
+  // 1️⃣ Fetch company list from DB (Supabase Flutter latest)
+  Future<void> fetchCompanies() async {
+  setState(() => isLoading = true);
+
+  try {
+    final data = await supabase.from('company').select('company_id, companyName');
+
+    // convert data to List<Map<String, dynamic>>
+    companyList = List<Map<String, dynamic>>.from(data as List);
+
+    setState(() => isLoading = false);
+  } catch (e) {
+    print("Error fetching companies: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Failed to load companies: $e")),
+    );
+    setState(() => isLoading = false);
+  }
+}
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('register')),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Form(
-            key: _formkey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Padding(
-                  padding: const EdgeInsets.only(top: 20.0),
-                  child: Center(
-                    child: Container(
-                      width: 200,
-                      height: 150,
-                      //decoration: BoxDecoration(
-                      //borderRadius: BorderRadius.circular(40),
-                      //border: Border.all(color: Colors.blueGrey)),
-                      child: Image.asset('assets/images/tph.png'),
+      appBar: AppBar(title: const Text("Register Employee")),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(labelText: "Name"),
                     ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: TextFormField(
-                    // validator: ((value) {
-                    //   if (value == null || value.isEmpty) {
-                    //     return 'please enter some text';
-                    //   } else if (value.length < 5) {
-                    //     return 'Enter atleast 5 Charecter';
-                    //   }
-
-                    //   return null;
-                    // }),
-                    validator: MultiValidator([
-                      RequiredValidator(errorText: 'Enter first named'),
-                      MinLengthValidator(
-                        3,
-                        errorText: 'Minimum 3 charecter filled name',
-                      ),
-                    ]),
-
-                    decoration: InputDecoration(
-                      hintText: 'Enter first Name',
-                      labelText: 'first named',
-                      prefixIcon: Icon(Icons.person, color: Colors.green),
-                      errorStyle: TextStyle(fontSize: 18.0),
-                      border: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red),
-                        borderRadius: BorderRadius.all(Radius.circular(9.0)),
-                      ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: emailController,
+                      decoration: const InputDecoration(labelText: "Email"),
                     ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: TextFormField(
-                    validator: MultiValidator([
-                      RequiredValidator(errorText: 'Enter last named'),
-                      MinLengthValidator(
-                        3,
-                        errorText: 'Last name should be atleast 3 charater',
-                      ),
-                    ]),
-                    decoration: InputDecoration(
-                      hintText: 'Enter last Name',
-                      labelText: 'Last named',
-                      prefixIcon: Icon(Icons.person, color: Colors.grey),
-                      errorStyle: TextStyle(fontSize: 18.0),
-                      border: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red),
-                        borderRadius: BorderRadius.all(Radius.circular(9.0)),
-                      ),
+                    const SizedBox(height: 10),
+                    DropdownButton<String>(
+                      value: selectedCompany,
+                      hint: const Text("Select Company"),
+                      isExpanded: true,
+                      items: companyList.map((c) {
+                        return DropdownMenuItem<String>(
+                          value: c["company_id"].toString(),
+                          child: Text(c["companyName"]),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedCompany = value;
+                        });
+                      },
                     ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: TextFormField(
-                    validator: MultiValidator([
-                      RequiredValidator(errorText: 'Enter email address'),
-                      EmailValidator(errorText: 'Please correct email filled'),
-                    ]),
-                    decoration: InputDecoration(
-                      hintText: 'Email',
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email, color: Colors.lightBlue),
-                      errorStyle: TextStyle(fontSize: 18.0),
-                      border: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red),
-                        borderRadius: BorderRadius.all(Radius.circular(9.0)),
-                      ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: passwordController,
+                      decoration: const InputDecoration(labelText: "Password"),
+                      obscureText: true,
                     ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: TextFormField(
-                    validator: MultiValidator([
-                      RequiredValidator(errorText: 'Enter mobile number'),
-                      PatternValidator(
-                        r'(^[0,9]{10}$)',
-                        errorText: 'enter valid mobile number',
-                      ),
-                    ]),
-                    decoration: InputDecoration(
-                      hintText: 'Mobile',
-                      labelText: 'Mobile',
-                      prefixIcon: Icon(Icons.phone, color: Colors.grey),
-                      border: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red),
-                        borderRadius: BorderRadius.all(Radius.circular(9)),
-                      ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: registerEmployee,
+                      child: const Text("Register"),
                     ),
-                  ),
+                  ],
                 ),
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(18.0),
-                    child: Container(
-                      // margin: EdgeInsets.fromLTRB(200, 20, 50, 0),
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                        ),
-                        onPressed: () {
-                          if (_formkey.currentState!.validate()) {
-                            print('form submitted');
-                          }
-                        },
-                        child: Text(
-                          'Register',
-                          style: TextStyle(color: Colors.white, fontSize: 22),
-                        ),
-                      ),
-                      width: MediaQuery.of(context).size.width,
-                      height: 50,
-                    ),
-                  ),
-                ),
-                Center(
-                  child: Padding(
-                    padding: EdgeInsets.only(top: 20),
-                    child: Center(
-                      child: Text(
-                        'Or Sign Up Using',
-                        style: TextStyle(fontSize: 18, color: Colors.black),
-                      ),
-                    ),
-                  ),
-                ),
-                Center(
-                  child: Padding(
-                    padding: EdgeInsets.only(top: 20, left: 90),
-                    child: Row(
-                      children: [
-                        Container(
-                          height: 40,
-                          width: 40,
-                          child: Image.asset(
-                            'assets/images/g.png',
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        Container(
-                          height: 70,
-                          width: 70,
-                          child: Image.asset(
-                            'assets/images/facebook.png',
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        Container(
-                          height: 40,
-                          width: 40,
-                          child: Image.asset(
-                            'assets/images/apple.jpg',
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Center(
-                  child: Container(
-                    padding: EdgeInsets.only(top: 60),
-                    child: Text(
-                      'SIGN IN',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+              ),
       ),
     );
+  }
+
+  // 2️⃣ Register function
+  Future<void> registerEmployee() async {
+    if (selectedCompany == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select a company")),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      // Sign up via Supabase Auth
+      final response = await supabase.auth.signUp(
+        email: emailController.text,
+        password: passwordController.text,
+      );
+
+      if (response.user == null) {
+        throw "Register failed!";
+      }
+
+      final userId = response.user!.id;
+
+      // Insert extra data to 'users' table
+      final insertResponse = await supabase.from('users').insert({
+        'id': userId,
+        'name': nameController.text,
+        'email': emailController.text,
+        'role': 'employee',
+        'staff_type': 'permanent',
+        'company_id': int.parse(selectedCompany!),
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Register successful!")),
+      );
+
+      // Navigate back to login page
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+      );
+    } catch (e) {
+      print("Register error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
   }
 }
